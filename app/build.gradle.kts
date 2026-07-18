@@ -44,6 +44,13 @@ android {
             excludes += "META-INF/DEPENDENCIES"
         }
     }
+
+    applicationVariants.all {
+        outputs.all {
+            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            output.outputFileName = "FitDash-${defaultConfig.versionName}-${name}.apk"
+        }
+    }
 }
 
 dependencies {
