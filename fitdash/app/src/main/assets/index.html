@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>FitDash</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --font: -apple-system, system-ui, sans-serif;
+    --bg:       #0d0d0d;
+    --card:     #181818;
+    --card2:    #1e1e1e;
+    --border:   #2a2a2a;
+    --text:     #f0f0f0;
+    --sub:      #888;
+    --dim:      #555;
+    --accent:   #c0c0c0;
+    --accent2:  #a0a0a0;
+    --good:     #2d4a2d;
+    --good-line:#4caf50;
+    --chart-bg: #1a2a1a;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 15px;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* ── Header ─────────────────────── */
+  header {
+    padding: 16px 16px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg);
+  }
+  .app-title { font-size: 22px; font-weight: 600; color: var(--text); }
+  .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+  .clock { font-size: 14px; color: var(--sub); font-variant-numeric: tabular-nums; }
+  .date-str { font-size: 12px; color: var(--dim); }
+
+  /* ── Tabs ───────────────────────── */
+  nav {
+    display: flex;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--border);
+    gap: 24px;
+  }
+  nav button {
+    background: none; border: none; cursor: pointer;
+    padding: 10px 0;
+    font-family: var(--font); font-size: 13px; font-weight: 500;
+    color: var(--dim);
+    border-bottom: 2px solid transparent;
+    letter-spacing: 0.3px;
+  }
+  nav button.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── Content ────────────────────── */
+  main { padding: 12px 12px 80px; display: flex; flex-direction: column; gap: 10px; }
+
+  /* ── Card ───────────────────────── */
+  .card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .card-label { font-size: 12px; color: var(--sub); font-weight: 400; margin-bottom: 2px; }
+  .card-value { font-size: 30px; font-weight: 300; color: var(--text); line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .card-value .unit { font-size: 14px; color: var(--sub); font-weight: 400; margin-left: 2px; }
+  .card-sub { font-size: 12px; color: var(--sub); margin-top: 2px; }
+
+  /* ── Grid ───────────────────────── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+  /* ── Big hero card (steps ring) ── */
+  .hero-card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 20px 16px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .hero-ring { position: relative; flex-shrink: 0; }
+  .hero-ring svg { display: block; }
+  .ring-center {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .ring-center .rc-label { font-size: 10px; color: var(--sub); letter-spacing: 0.5px; text-transform: uppercase; }
+  .ring-center .rc-value { font-size: 22px; font-weight: 300; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .ring-center .rc-goal  { font-size: 11px; color: var(--accent); }
+  .hero-stats { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+  .hero-stat {
+    background: var(--card2);
+    border-radius: 12px;
+    padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .hero-stat-icon { font-size: 18px; width: 24px; text-align: center; }
+  .hero-stat-body { display: flex; flex-direction: column; }
+  .hero-stat-label { font-size: 11px; color: var(--sub); }
+  .hero-stat-value { font-size: 15px; font-weight: 500; color: var(--text); font-variant-numeric: tabular-nums; }
+
+  /* ── Chart background strip ──────── */
+  .chart-area {
+    background: var(--chart-bg);
+    border-radius: 8px;
+    padding: 10px 8px 6px;
+    margin-top: 8px;
+    position: relative;
+  }
+
+  /* ── Spark bars ─────────────────── */
+  .spark-bars { display: flex; align-items: flex-end; gap: 3px; height: 40px; }
+  .spark-col  { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
+  .spark-bar  { width: 100%; border-radius: 3px; min-height: 2px; transition: height .8s cubic-bezier(.4,0,.2,1); }
+  .spark-days { display: flex; justify-content: space-between; margin-top: 4px; }
+  .spark-days span { font-size: 10px; color: var(--dim); flex: 1; text-align: center; }
+  .spark-today { background: var(--card2); border-radius: 50%; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; }
+
+  /* ── Progress bar ───────────────── */
+  .prog-track { height: 3px; background: var(--border); border-radius: 2px; margin-top: 8px; }
+  .prog-fill  { height: 100%; border-radius: 2px; transition: width 1s cubic-bezier(.4,0,.2,1); }
+
+  /* ── Badge ──────────────────────── */
+  .badge {
+    display: inline-flex; align-items: center;
+    background: var(--good); color: var(--good-line);
+    border-radius: 20px; padding: 3px 10px;
+    font-size: 11px; font-weight: 500;
+    margin-top: 6px; width: fit-content;
+  }
+
+  /* ── Sleep seg bar ──────────────── */
+  .sleep-seg { display: flex; gap: 2px; height: 5px; border-radius: 3px; overflow: hidden; margin-top: 6px; }
+  .sleep-legend { display: flex; gap: 12px; margin-top: 6px; flex-wrap: wrap; }
+  .sleep-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--sub); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── HR zones ───────────────────── */
+  .hr-zones { display: flex; gap: 2px; height: 6px; margin-top: 8px; position: relative; }
+  .hr-zone  { border-radius: 2px; }
+  .hr-needle {
+    position: absolute; top: -3px; width: 3px; height: 12px;
+    background: var(--accent); border-radius: 2px;
+    transform: translateX(-50%);
+    transition: left 1s cubic-bezier(.4,0,.2,1);
+  }
+  .hr-zone-labels { display: flex; justify-content: space-between; margin-top: 4px; }
+  .hr-zone-labels span { font-size: 9px; color: var(--dim); }
+
+  /* ── Vitals grid card ───────────── */
+  .vitals-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .vitals-row:last-child { border-bottom: none; }
+  .vitals-row-label { font-size: 13px; color: var(--sub); }
+  .vitals-row-value { font-size: 13px; font-weight: 500; color: var(--text); font-variant-numeric: tabular-nums; }
+
+  /* ── Loading ─────────────────────── */
+  #loading {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    min-height: 70vh; gap: 14px;
+    color: var(--dim); font-size: 12px; letter-spacing: 1px;
+  }
+  .spinner {
+    width: 28px; height: 28px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Perm prompt ─────────────────── */
+  #perm-prompt {
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    min-height: 70vh; gap: 16px; padding: 32px; text-align: center;
+  }
+  #perm-prompt p { font-size: 15px; color: var(--sub); line-height: 1.6; }
+  #perm-btn {
+    background: var(--accent); color: #111;
+    border: none; border-radius: 24px; padding: 14px 32px;
+    font-family: var(--font); font-size: 14px; font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* ── Refresh ─────────────────────── */
+  .refresh-btn {
+    position: fixed;
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    right: 16px; width: 44px; height: 44px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 50%; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--sub); font-size: 18px; z-index: 20;
+  }
+  .refresh-btn:active { border-color: var(--accent); color: var(--accent); }
+
+  /* ── Section header ─────────────── */
+  .section-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 4px 4px 2px;
+  }
+  .section-title { font-size: 16px; font-weight: 600; color: var(--text); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="app-title">FitDash</div>
+  <div style="display:flex;align-items:center;gap:14px">
+    <div class="header-right">
+      <div class="clock" id="last-updated">—</div>
+      <div class="date-str" id="date-label">—</div>
+    </div>
+    <button onclick="openMenu()" style="
+      background:none;border:none;cursor:pointer;
+      color:var(--sub);font-size:22px;line-height:1;
+      padding:4px 2px;display:flex;align-items:center">☰</button>
+  </div>
+</header>
+
+<!-- Settings drawer -->
+<div id="menu-overlay" onclick="closeMenu()" style="
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:100"></div>
+<div id="menu-drawer" style="
+  position:fixed;top:0;right:-320px;width:300px;height:100%;
+  background:var(--card);z-index:101;transition:right .25s ease;
+  display:flex;flex-direction:column;overflow-y:auto;
+  padding-top:env(safe-area-inset-top,0px)">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 16px 14px">
+    <div style="font-size:17px;font-weight:600;color:var(--text)">Settings</div>
+    <button onclick="closeMenu()" style="
+      background:none;border:none;cursor:pointer;
+      color:var(--sub);font-size:22px;line-height:1">✕</button>
+  </div>
+
+  <!-- Google Drive section -->
+  <div style="padding:0 16px 8px">
+    <div style="font-size:11px;font-weight:600;color:var(--dim);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:10px">Google Drive</div>
+    <div id="drive-section"></div>
+  </div>
+
+  <div style="height:1px;background:var(--border);margin:8px 0"></div>
+
+  <!-- UltraSignal Token section -->
+  <div style="padding:8px 16px">
+    <div style="font-size:11px;font-weight:600;color:var(--dim);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:10px">UltraSignal</div>
+    <div style="font-size:13px;color:var(--sub);margin-bottom:8px">API Token</div>
+    <input id="us-token-input" type="text" placeholder="Paste token here"
+      style="width:100%;background:var(--card2);border:1px solid var(--border);
+      border-radius:10px;padding:10px 12px;color:var(--text);font-size:13px;
+      font-family:var(--font);outline:none" />
+    <button onclick="saveToken()" style="
+      margin-top:10px;width:100%;background:var(--card2);
+      border:1px solid var(--border);color:var(--text);
+      border-radius:10px;padding:10px 0;font-family:var(--font);
+      font-size:13px;font-weight:500;cursor:pointer">Save token</button>
+    <div id="token-msg" style="min-height:16px;margin-top:6px;font-size:12px;color:var(--sub);text-align:center"></div>
+  </div>
+
+  <div style="height:1px;background:var(--border);margin:8px 0"></div>
+
+  <!-- Sync Interval section -->
+  <div style="padding:8px 16px 24px">
+    <div style="font-size:11px;font-weight:600;color:var(--dim);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:10px">Sync Interval</div>
+    <div style="font-size:13px;color:var(--sub);margin-bottom:10px">How often FitDash syncs in the background</div>
+    <div id="interval-options" style="display:flex;flex-direction:column;gap:8px"></div>
+    <div id="interval-msg" style="min-height:16px;margin-top:8px;font-size:12px;color:var(--sub);text-align:center"></div>
+  </div>
+</div>
+
+<nav>
+  <button class="active" onclick="setTab('today')">Today</button>
+  <button onclick="setTab('fitness')">Fitness</button>
+  <button onclick="setTab('sleep')">Sleep</button>
+  <button onclick="setTab('health')">Health</button>
+  <button onclick="setTab('history')">History</button>
+  <button onclick="setTab('sources')">Sources</button>
+</nav>
+
+<div id="loading"><div class="spinner"></div><span>Loading</span></div>
+<div id="perm-prompt">
+  <p>FitDash needs access to your Health Connect data.</p>
+  <button id="perm-btn" onclick="window.Android && window.Android.requestPermissions()">Grant permissions</button>
+</div>
+<main id="content" style="display:none;"></main>
+<button class="refresh-btn" onclick="doRefresh()">↻</button>
+
+<script>
+let data = null, tab = 'today';
+
+function updateDateLabel() {
+  const now = new Date();
+  document.getElementById('date-label').textContent =
+    now.toLocaleDateString([], {weekday:'short',month:'short',day:'numeric'});
+}
+updateDateLabel();
+
+function setLastUpdated() {
+  const now = new Date();
+  document.getElementById('last-updated').textContent =
+    'Updated ' + now.toLocaleTimeString([], {hour12:false,hour:'2-digit',minute:'2-digit'});
+}
+
+const fmt      = n => Number(n).toLocaleString();
+const pct      = (v,g) => Math.min(100, Math.round(v/g*100));
+const fmtSleep = h => { const hr=Math.floor(h),mn=Math.round((h-hr)*60); return `${hr}h ${String(mn).padStart(2,'0')}m`; };
+
+function setTab(t) {
+  tab = t;
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  const idx = ['today','fitness','sleep','health','history','sources'].indexOf(t);
+  if (idx >= 0) document.querySelectorAll('nav button')[idx].classList.add('active');
+  if (data) render(data);
+}
+
+window.onHealthData = function(js) {
+  try {
+    data = JSON.parse(js);
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('perm-prompt').style.display = 'none';
+    document.getElementById('content').style.display = 'flex';
+    setLastUpdated();
+    render(data);
+  } catch(e) { showErr(e.message); }
+};
+window.onHealthError = msg => showErr(msg);
+
+function showErr(msg) {
+  document.getElementById('loading').innerHTML =
+    `<span style="color:var(--sub);font-size:13px;text-align:center;padding:0 24px">${msg}</span>`;
+}
+function doRefresh() {
+  document.getElementById('loading').style.display = 'flex';
+  document.getElementById('loading').innerHTML = '<div class="spinner"></div><span>Refreshing</span>';
+  document.getElementById('content').style.display = 'none';
+  window.Android && window.Android.refresh();
+}
+
+function render(d) {
+  document.getElementById('content').innerHTML =
+    tab === 'today'   ? renderToday(d.today) :
+    tab === 'fitness' ? renderFitness(d.today, d.week) :
+    tab === 'sleep'   ? renderSleep(d.today) :
+    tab === 'history' ? renderHistory() :
+    tab === 'sources' ? renderSources(d.sources) :
+    tab === 'health'  ? renderHealth(d.today) : '';
+}
+
+// ── Spark helper ──────────────────────────────────────────
+function spark(week, accessor, color) {
+  const vals = week.map(accessor), max = Math.max(...vals, 1);
+  const bars = week.map((d,i) => {
+    const h = Math.round((accessor(d)/max)*40);
+    const isToday = i === week.length-1;
+    const dayEl = isToday
+      ? `<span><span class="spark-today">${d.day[0]}</span></span>`
+      : `<span>${d.day[0]}</span>`;
+    return { bar: `<div class="spark-col"><div class="spark-bar" style="height:${h}px;background:${isToday?color:'#2a2a2a'}"></div></div>`, day: dayEl };
+  });
+  return `<div class="chart-area">
+    <div class="spark-bars">${bars.map(b=>b.bar).join('')}</div>
+    <div class="spark-days">${bars.map(b=>b.day).join('')}</div>
+  </div>`;
+}
+
+// ── TODAY ─────────────────────────────────────────────────
+function renderToday(t) {
+  if (!t) return '';
+  const stepPct = pct(t.steps, t.stepsGoal);
+  const r = 54, stroke = 8, circ = 2*Math.PI*r;
+  const dash = (stepPct/100)*circ;
+
+  return `
+  <!-- Hero: steps ring + quick stats -->
+  <div class="hero-card">
+    <div class="hero-ring">
+      <svg width="130" height="130" style="transform:rotate(-90deg)">
+        <circle cx="65" cy="65" r="${r}" fill="none" stroke="#2a2a2a" stroke-width="${stroke}"/>
+        <circle cx="65" cy="65" r="${r}" fill="none" stroke="#b0b0b0" stroke-width="${stroke}"
+          stroke-dasharray="${dash.toFixed(1)} ${circ.toFixed(1)}" stroke-linecap="round"/>
+      </svg>
+      <div class="ring-center">
+        <div class="rc-label">Steps</div>
+        <div class="rc-value">${fmt(t.steps)}</div>
+        <div class="rc-goal">of ${fmt(t.stepsGoal)}</div>
+      </div>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-icon">🔥</div>
+        <div class="hero-stat-body">
+          <div class="hero-stat-label">Active cal</div>
+          <div class="hero-stat-value">${fmt(t.activeCalories)}</div>
+        </div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-icon">💤</div>
+        <div class="hero-stat-body">
+          <div class="hero-stat-label">Sleep</div>
+          <div class="hero-stat-value">${fmtSleep(t.sleepHours)}</div>
+        </div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-icon">❤️</div>
+        <div class="hero-stat-body">
+          <div class="hero-stat-label">Resting HR</div>
+          <div class="hero-stat-value">${t.heartRateResting||'—'} bpm</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key metrics grid -->
+  <div class="section-header"><div class="section-title">Key metrics</div></div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-label">Heart rate</div>
+      <div class="card-value">${t.heartRateResting||'—'}–${t.heartRateMax||'—'}<span class="unit">bpm</span></div>
+      ${t.heartRateCurrent ? `<div class="badge">Current ${t.heartRateCurrent} bpm</div>` : ''}
+    </div>
+    <div class="card">
+      <div class="card-label">Distance</div>
+      <div class="card-value">${t.distance.toFixed(1)}<span class="unit">km</span></div>
+      <div class="card-sub">≈ ${(t.distance*0.621371).toFixed(1)} mi</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-label">SpO₂</div>
+      <div class="card-value">${t.spo2>0?t.spo2:'—'}<span class="unit">%</span></div>
+      ${t.spo2>=95 ? '<div class="badge">In range</div>' : ''}
+    </div>
+    <div class="card">
+      <div class="card-label">VO₂ Max</div>
+      <div class="card-value">${t.vo2max>0?t.vo2max.toFixed(1):'—'}</div>
+      <div class="card-sub">ml/kg/min</div>
+    </div>
+  </div>`;
+}
+
+// ── FITNESS ───────────────────────────────────────────────
+function renderFitness(t, week) {
+  if (!t || !week) return '';
+  const avgSteps = Math.round(week.reduce((a,d)=>a+d.steps,0)/week.length);
+  const totalSteps = week.reduce((a,d)=>a+d.steps,0);
+
+  return `
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-label">Steps avg</div>
+      <div class="card-value">${fmt(avgSteps)}</div>
+      <div class="card-sub">${fmt(totalSteps)} weekly total</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Exercise</div>
+      <div class="card-value">${t.exerciseMinutes}<span class="unit">min</span></div>
+      <div class="card-sub">Goal: ${t.exerciseGoal} min</div>
+      <div class="prog-track"><div class="prog-fill" style="width:${pct(t.exerciseMinutes,t.exerciseGoal)}%;background:#b0b0b0"></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Steps — this week</div>
+    <div class="card-value">${fmt(totalSteps)}<span class="unit">total</span></div>
+    ${spark(week, d=>d.steps, '#b0b0b0')}
+  </div>
+
+  <div class="card">
+    <div class="card-label">Active calories — this week</div>
+    <div class="card-value">${fmt(Math.round(week.reduce((a,d)=>a+d.calories,0)/week.length))}<span class="unit">avg/day</span></div>
+    ${spark(week, d=>d.calories, '#909090')}
+  </div>
+
+  <div class="card">
+    <div class="card-label">Daily activity</div>
+    <div class="card-label" style="margin-top:4px">Steps</div>
+    <div class="card-value">${fmt(t.steps)}</div>
+    <div class="card-sub">Today · ${fmt(t.stepsGoal - t.steps)} left</div>
+    <div class="prog-track"><div class="prog-fill" style="width:${pct(t.steps,t.stepsGoal)}%;background:#b0b0b0"></div></div>
+    <div style="margin-top:12px" class="card-label">Distance</div>
+    <div class="card-value">${t.distance.toFixed(2)}<span class="unit">km</span></div>
+  </div>`;
+}
+
+// ── SLEEP ─────────────────────────────────────────────────
+function renderSleep(t) {
+  if (!t) return '';
+  return `
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-label">Sleep duration</div>
+      <div class="card-value">${fmtSleep(t.sleepHours)}</div>
+      ${t.sleepHours >= t.sleepGoal ? '<div class="badge">Goal met</div>' : `<div class="card-sub">Goal: ${fmtSleep(t.sleepGoal)}</div>`}
+    </div>
+    <div class="card">
+      <div class="card-label">Efficiency</div>
+      <div class="card-value">${t.sleepHours>0?Math.round((t.sleepHours/t.sleepGoal)*100)+'%':'—'}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Sleep breakdown</div>
+    <div class="sleep-seg" style="margin-top:10px">
+      <div style="flex:${t.sleepDeep||0.01};background:#3d5a80"></div>
+      <div style="flex:${t.sleepRem||0.01};background:#7b9e87"></div>
+      <div style="flex:${Math.max(t.sleepLight||0,0.1)};background:#3a3a3a"></div>
+    </div>
+    <div class="sleep-legend">
+      <div class="sleep-legend-item"><div class="dot" style="background:#3d5a80"></div>Deep · ${fmtSleep(t.sleepDeep)}</div>
+      <div class="sleep-legend-item"><div class="dot" style="background:#7b9e87"></div>REM · ${fmtSleep(t.sleepRem)}</div>
+      <div class="sleep-legend-item"><div class="dot" style="background:#3a3a3a;border:1px solid #555"></div>Light · ${fmtSleep(t.sleepLight)}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Key metrics</div>
+    <div class="vitals-row"><span class="vitals-row-label">REM sleep</span><span class="vitals-row-value">${fmtSleep(t.sleepRem)}</span></div>
+    <div class="vitals-row"><span class="vitals-row-label">Deep sleep</span><span class="vitals-row-value">${fmtSleep(t.sleepDeep)}</span></div>
+    <div class="vitals-row"><span class="vitals-row-label">Light sleep</span><span class="vitals-row-value">${fmtSleep(t.sleepLight)}</span></div>
+    <div class="vitals-row"><span class="vitals-row-label">Goal</span><span class="vitals-row-value">${fmtSleep(t.sleepGoal)}</span></div>
+  </div>`;
+}
+
+// ── HEALTH ────────────────────────────────────────────────
+function renderHealth(t) {
+  if (!t) return '';
+  return `
+  <div class="section-header"><div class="section-title">Vitals & trends</div></div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-label">Heart rate</div>
+      <div class="card-value">${t.heartRateResting||'—'}<span class="unit">bpm</span></div>
+      <div class="card-sub">Resting · Today</div>
+      ${t.heartRateResting>0 && t.heartRateResting<100 ? '<div class="badge">In range</div>' : ''}
+    </div>
+    <div class="card">
+      <div class="card-label">Blood oxygen</div>
+      <div class="card-value">${t.spo2>0?t.spo2:'—'}<span class="unit">%</span></div>
+      <div class="card-sub">SpO₂ · Today</div>
+      ${t.spo2>=95 ? '<div class="badge">In range</div>' : ''}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Heart rate zones</div>
+    <div class="card-value" style="margin-top:4px">${t.heartRateResting||'—'}–${t.heartRateMax||'—'}<span class="unit">bpm</span></div>
+    <div class="hr-zones">
+      <div class="hr-zone" style="flex:20;background:#1a2a1a"></div>
+      <div class="hr-zone" style="flex:40;background:#1e2e1a"></div>
+      <div class="hr-zone" style="flex:40;background:#2a2a14"></div>
+      <div class="hr-zone" style="flex:60;background:#2a1414"></div>
+      <div class="hr-needle" style="left:${Math.min(100,Math.max(0,((t.heartRateCurrent-40)/160)*100))}%"></div>
+    </div>
+    <div class="hr-zone-labels"><span>Rest</span><span>Fat burn</span><span>Cardio</span><span>Peak</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Key metrics</div>
+    <div class="vitals-row">
+      <span class="vitals-row-label">Resting heart rate</span>
+      <span class="vitals-row-value">${t.heartRateResting||'—'} bpm</span>
+    </div>
+    <div class="vitals-row">
+      <span class="vitals-row-label">Peak heart rate</span>
+      <span class="vitals-row-value">${t.heartRateMax||'—'} bpm</span>
+    </div>
+    <div class="vitals-row">
+      <span class="vitals-row-label">Blood oxygen</span>
+      <span class="vitals-row-value">${t.spo2>0?t.spo2+'%':'—'}</span>
+    </div>
+    <div class="vitals-row">
+      <span class="vitals-row-label">VO₂ Max</span>
+      <span class="vitals-row-value">${t.vo2max>0?t.vo2max.toFixed(1)+' ml/kg/min':'—'}</span>
+    </div>
+  </div>`;
+}
+
+// ── History data ──────────────────────────────────────────
+let historyData = null;
+
+window.onHistoryData = function(js) {
+  try {
+    historyData = JSON.parse(js);
+    if (tab === 'history') render(data);
+  } catch(e) { console.error('History parse error', e); }
+};
+
+let selectedDay = null;
+
+function renderHistory() {
+  if (!historyData) {
+    // Show spinner but also a tap-to-retry after delay
+    return `<div style="color:var(--sub);padding:32px;text-align:center;font-size:14px;display:flex;flex-direction:column;align-items:center;gap:14px;min-height:50vh;justify-content:center">
+      <div class="spinner"></div>
+      <span>Loading history…</span>
+      <span style="font-size:11px;color:var(--dim)">May take up to a minute</span>
+      <button onclick="doRefresh()" style="margin-top:8px;background:none;border:1px solid var(--border);color:var(--dim);border-radius:20px;padding:6px 16px;font-family:var(--font);font-size:12px;cursor:pointer">Tap to retry</button>
+    </div>`;
+  }
+
+  const { days, months, bests } = historyData;
+  const fmtDate = d => {
+    const dt = new Date(d + 'T00:00:00');
+    return dt.toLocaleDateString([], {month:'short', day:'numeric'});
+  };
+  const fmtMonth = m => {
+    const [y, mo] = m.split('-');
+    return new Date(y, mo-1, 1).toLocaleDateString([], {month:'long', year:'numeric'});
+  };
+
+  // Personal bests
+  const bestsHtml = `
+    <div class="section-header"><div class="section-title">Personal bests</div></div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-label">Most steps</div>
+        <div class="card-value">${fmt(bests.mostStepsDay)}</div>
+        <div class="card-sub">${bests.mostStepsDate ? fmtDate(bests.mostStepsDate) : '—'}</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Longest sleep</div>
+        <div class="card-value">${fmtSleep(bests.longestSleep)}</div>
+        <div class="card-sub">${bests.longestSleepDate ? fmtDate(bests.longestSleepDate) : '—'}</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Lowest resting HR</div>
+        <div class="card-value">${bests.lowestRestingHr || '—'}<span class="unit">${bests.lowestRestingHr ? ' bpm' : ''}</span></div>
+        <div class="card-sub">${bests.lowestRestingHrDate ? fmtDate(bests.lowestRestingHrDate) : '—'}</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Most active cal</div>
+        <div class="card-value">${fmt(bests.mostCaloriesDay)}</div>
+        <div class="card-sub">${bests.mostCaloriesDate ? fmtDate(bests.mostCaloriesDate) : '—'}</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Best VO₂ Max</div>
+        <div class="card-value">${bests.highestVo2max > 0 ? bests.highestVo2max.toFixed(1) : '—'}<span class="unit">${bests.highestVo2max > 0 ? ' ml/kg/min' : ''}</span></div>
+        <div class="card-sub">${bests.highestVo2maxDate ? fmtDate(bests.highestVo2maxDate) : '—'}</div>
+      </div>
+    </div>`;
+
+  // Monthly summaries
+  const monthsHtml = `
+    <div class="section-header"><div class="section-title">Monthly averages</div></div>
+    ${months.slice().reverse().map(m => `
+      <div class="card">
+        <div class="card-label">${fmtMonth(m.month)}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:8px">
+          <div>
+            <div class="card-label">Steps</div>
+            <div style="font-size:18px;font-weight:300;color:var(--text);font-variant-numeric:tabular-nums">${fmt(m.avgSteps)}</div>
+          </div>
+          <div>
+            <div class="card-label">Sleep</div>
+            <div style="font-size:18px;font-weight:300;color:var(--text)">${fmtSleep(m.avgSleep)}</div>
+          </div>
+          <div>
+            <div class="card-label">Calories</div>
+            <div style="font-size:18px;font-weight:300;color:var(--text);font-variant-numeric:tabular-nums">${fmt(m.avgCalories)}</div>
+          </div>
+          <div>
+            <div class="card-label">Resting HR</div>
+            <div style="font-size:18px;font-weight:300;color:var(--text)">${m.avgHr || '—'}${m.avgHr ? ' bpm' : ''}</div>
+          </div>
+          <div>
+            <div class="card-label">SpO₂</div>
+            <div style="font-size:18px;font-weight:300;color:var(--text)">${m.avgSpo2 || '—'}${m.avgSpo2 ? '%' : ''}</div>
+          </div>
+        </div>
+      </div>`).join('')}`;
+
+  // Calendar — group days by month, show as a scrollable list
+  const byMonth = {};
+  days.forEach(d => {
+    const mo = d.date.substring(0, 7);
+    if (!byMonth[mo]) byMonth[mo] = [];
+    byMonth[mo].push(d);
+  });
+
+  const calHtml = `
+    <div class="section-header"><div class="section-title">Day by day</div></div>
+    ${Object.entries(byMonth).map(([mo, recs]) => `
+      <div class="card" style="padding:12px 16px">
+        <div class="card-label" style="margin-bottom:8px">${fmtMonth(mo)}</div>
+        ${recs.map(d => {
+          const isSelected = selectedDay === d.date;
+          return `<div onclick="selectDay('${d.date}')" style="
+            border-radius:10px;padding:10px 12px;margin-bottom:4px;cursor:pointer;
+            background:${isSelected ? 'var(--card2)' : 'transparent'};
+            border:1px solid ${isSelected ? 'var(--accent)' : 'transparent'};
+          ">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="font-size:13px;color:var(--sub)">${fmtDate(d.date)}</div>
+              <div style="display:flex;gap:16px">
+                <div style="text-align:right">
+                  <div style="font-size:11px;color:var(--dim)">Steps</div>
+                  <div style="font-size:14px;font-weight:500;color:var(--text);font-variant-numeric:tabular-nums">${fmt(d.steps)}</div>
+                </div>
+                <div style="text-align:right">
+                  <div style="font-size:11px;color:var(--dim)">Cal</div>
+                  <div style="font-size:14px;font-weight:500;color:var(--text);font-variant-numeric:tabular-nums">${d.calories > 0 ? fmt(d.calories) : '—'}</div>
+                </div>
+                <div style="text-align:right">
+                  <div style="font-size:11px;color:var(--dim)">Sleep</div>
+                  <div style="font-size:14px;font-weight:500;color:var(--text)">${d.sleep > 0 ? fmtSleep(d.sleep) : '—'}</div>
+                </div>
+              </div>
+            </div>
+            ${isSelected ? `
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+              <div>
+                <div style="font-size:10px;color:var(--dim)">Distance</div>
+                <div style="font-size:13px;color:var(--text)">${d.distance > 0 ? d.distance.toFixed(1) + ' km' : '—'}</div>
+              </div>
+              <div>
+                <div style="font-size:10px;color:var(--dim)">Resting HR</div>
+                <div style="font-size:13px;color:var(--text)">${d.hrResting || '—'}${d.hrResting ? ' bpm' : ''}</div>
+              </div>
+              <div>
+                <div style="font-size:10px;color:var(--dim)">Peak HR</div>
+                <div style="font-size:13px;color:var(--text)">${d.hrMax || '—'}${d.hrMax ? ' bpm' : ''}</div>
+              </div>
+              <div>
+                <div style="font-size:10px;color:var(--dim)">Deep sleep</div>
+                <div style="font-size:13px;color:var(--text)">${d.sleepDeep > 0 ? fmtSleep(d.sleepDeep) : '—'}</div>
+              </div>
+              <div>
+                <div style="font-size:10px;color:var(--dim)">REM sleep</div>
+                <div style="font-size:13px;color:var(--text)">${d.sleepRem > 0 ? fmtSleep(d.sleepRem) : '—'}</div>
+              </div>
+              <div>
+                <div style="font-size:10px;color:var(--dim)">Light sleep</div>
+                <div style="font-size:13px;color:var(--text)">${d.sleepLight > 0 ? fmtSleep(d.sleepLight) : '—'}</div>
+              </div>
+              <div>
+                <div style="font-size:10px;color:var(--dim)">SpO₂</div>
+                <div style="font-size:13px;color:var(--text)">${d.spo2 || '—'}${d.spo2 ? '%' : ''}</div>
+              </div>
+              <div>
+                <div style="font-size:10px;color:var(--dim)">VO₂ Max</div>
+                <div style="font-size:13px;color:var(--text)">${d.vo2max > 0 ? d.vo2max.toFixed(1) : '—'}${d.vo2max > 0 ? ' ml/kg' : ''}</div>
+              </div>
+              <div>
+                <div style="font-size:10px;color:var(--dim)">Exercise</div>
+                <div style="font-size:13px;color:var(--text)">${d.exerciseMinutes > 0 ? d.exerciseMinutes + ' min' : '—'}</div>
+              </div>
+            </div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>`).join('')}`;
+
+  return bestsHtml + monthsHtml + calHtml;
+}
+
+// ── SETTINGS ──────────────────────────────────────────────────────────────────
+
+let backupStatus = null;
+
+function loadBackupStatus() {
+  try {
+    const raw = window.Android && window.Android.getBackupStatus();
+    if (raw) backupStatus = JSON.parse(raw);
+  } catch(e) { backupStatus = null; }
+}
+
+// ── Hamburger menu ────────────────────────────────────────────────────────────
+
+const SYNC_INTERVALS = [
+  { label: '15 minutes', value: 15 },
+  { label: '30 minutes', value: 30 },
+  { label: '1 hour',     value: 60 },
+  { label: '2 hours',    value: 120 },
+];
+
+function openMenu() {
+  document.getElementById('menu-overlay').style.display = 'block';
+  document.getElementById('menu-drawer').style.right = '0';
+  renderDriveSection();
+  renderTokenSection();
+  renderIntervalSection();
+}
+
+function closeMenu() {
+  document.getElementById('menu-overlay').style.display = 'none';
+  document.getElementById('menu-drawer').style.right = '-320px';
+}
+
+// ── Drive section ─────────────────────────────────────────────────────────────
+
+function renderDriveSection() {
+  loadBackupStatus();
+  const s = backupStatus;
+  const signedIn = s && s.signedIn;
+
+  const el = document.getElementById('drive-section');
+  if (!el) return;
+
+  el.innerHTML = signedIn ? `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div>
+        <div style="font-size:14px;font-weight:500;color:var(--text)">${s.email}</div>
+        <div style="font-size:12px;color:var(--sub)">Last backup: ${s.lastBackup}</div>
+        <div style="font-size:12px;color:var(--sub)">Last restore: ${s.lastRestore}</div>
+      </div>
+      <button onclick="signOut()" style="
+        background:none;border:1px solid var(--border);color:var(--sub);
+        border-radius:20px;padding:5px 14px;font-family:var(--font);
+        font-size:12px;cursor:pointer">Sign out</button>
+    </div>
+    <div style="font-size:12px;color:var(--dim);margin-bottom:10px">Backs up your UltraSignal token and sync interval so you can restore settings on any device.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button id="btn-backup" onclick="doBackup()" style="
+        background:var(--card2);border:1px solid var(--border);color:var(--text);
+        border-radius:10px;padding:10px 0;font-family:var(--font);
+        font-size:13px;cursor:pointer">↑ Backup</button>
+      <button id="btn-restore" onclick="doRestore()" style="
+        background:var(--card2);border:1px solid var(--border);color:var(--text);
+        border-radius:10px;padding:10px 0;font-family:var(--font);
+        font-size:13px;cursor:pointer">↓ Restore</button>
+    </div>
+    <div id="backup-msg" style="min-height:16px;margin-top:8px;font-size:12px;color:var(--sub);text-align:center"></div>
+  ` : `
+    <div style="font-size:13px;color:var(--sub);margin-bottom:10px">Sign in to enable backup and sync across devices.</div>
+    <button onclick="signIn()" style="
+      width:100%;background:var(--accent);color:#111;border:none;
+      border-radius:10px;padding:12px 0;font-family:var(--font);
+      font-size:14px;font-weight:600;cursor:pointer">Sign in with Google</button>
+  `;
+}
+
+// ── Token section ─────────────────────────────────────────────────────────────
+
+function renderTokenSection() {
+  const input = document.getElementById('us-token-input');
+  if (!input) return;
+  try {
+    const existing = window.Android && window.Android.getUltraSignalToken();
+    if (existing) input.value = existing;
+  } catch(e) {}
+}
+
+function saveToken() {
+  const input = document.getElementById('us-token-input');
+  const msg   = document.getElementById('token-msg');
+  const token = input ? input.value.trim() : '';
+  if (!token) { if (msg) msg.textContent = 'Token cannot be empty'; return; }
+  try {
+    window.Android && window.Android.setUltraSignalToken(token);
+    if (msg) msg.textContent = 'Saved ✓';
+    setTimeout(() => { if (msg) msg.textContent = ''; }, 2000);
+  } catch(e) {
+    if (msg) msg.textContent = 'Save failed';
+  }
+}
+
+// ── Interval section ──────────────────────────────────────────────────────────
+
+function renderIntervalSection() {
+  const el = document.getElementById('interval-options');
+  if (!el) return;
+  let current = 30;
+  try {
+    const raw = window.Android && window.Android.getSyncInterval();
+    if (raw) current = parseInt(raw);
+  } catch(e) {}
+
+  el.innerHTML = SYNC_INTERVALS.map(opt => {
+    const active = opt.value === current;
+    return `<button onclick="setSyncInterval(${opt.value})" style="
+      width:100%;text-align:left;padding:11px 14px;
+      background:${active ? 'var(--card2)' : 'transparent'};
+      border:1px solid ${active ? 'var(--accent)' : 'var(--border)'};
+      border-radius:10px;color:${active ? 'var(--text)' : 'var(--sub)'};
+      font-family:var(--font);font-size:13px;cursor:pointer;
+      display:flex;justify-content:space-between;align-items:center">
+      <span>${opt.label}</span>
+      ${active ? '<span style="color:var(--accent)">✓</span>' : ''}
+    </button>`;
+  }).join('');
+}
+
+function setSyncInterval(minutes) {
+  const msg = document.getElementById('interval-msg');
+  try {
+    window.Android && window.Android.setSyncInterval(minutes);
+    if (msg) msg.textContent = 'Interval updated ✓';
+    setTimeout(() => { if (msg) msg.textContent = ''; }, 2000);
+    renderIntervalSection(); // refresh checkmarks
+  } catch(e) {
+    if (msg) msg.textContent = 'Update failed';
+  }
+}
+
+// ── Drive callbacks ───────────────────────────────────────────────────────────
+
+function signIn()  { window.Android && window.Android.signInToDrive(); }
+function signOut() { window.Android && window.Android.signOutOfDrive(); }
+
+function doBackup() {
+  const btn = document.getElementById('btn-backup');
+  const msg = document.getElementById('backup-msg');
+  if (btn) { btn.textContent = 'Backing up…'; btn.disabled = true; }
+  if (msg) msg.textContent = '';
+  window.Android && window.Android.backupNow();
+}
+
+function doRestore() {
+  const btn = document.getElementById('btn-restore');
+  const msg = document.getElementById('backup-msg');
+  if (btn) { btn.textContent = 'Restoring…'; btn.disabled = true; }
+  if (msg) msg.textContent = '';
+  window.Android && window.Android.restoreNow();
+}
+
+window.onBackupResult = function(msg) {
+  const el  = document.getElementById('backup-msg');
+  const btn = document.getElementById('btn-backup');
+  if (el)  el.textContent = msg;
+  if (btn) { btn.textContent = '↑ Backup'; btn.disabled = false; }
+  loadBackupStatus();
+};
+
+window.onRestoreResult = function(msg) {
+  const el  = document.getElementById('backup-msg');
+  const btn = document.getElementById('btn-restore');
+  if (el)  el.textContent = msg;
+  if (btn) { btn.textContent = '↓ Restore'; btn.disabled = false; }
+  loadBackupStatus();
+};
+
+window.onBackupStatusChanged = function() {
+  renderDriveSection();
+};
+
+function selectDay(date) {
+  selectedDay = selectedDay === date ? null : date;
+  if (tab === 'history') render(data);
+}
+
+
+// ── Sources ────────────────────────────────────────────────────────────────────
+function renderSources(sources) {
+  if (!sources) {
+    return `<div class="card"><div class="card-label">Source data unavailable</div></div>`;
+  }
+  if (sources.length === 0) {
+    return `<div class="card"><div class="card-label">No source data recorded today</div></div>`;
+  }
+
+  const fmtSleep = h => {
+    if (!h || h <= 0) return '—';
+    const hr = Math.floor(h), mn = Math.round((h - hr) * 60);
+    return `${hr}h ${String(mn).padStart(2,'0')}m`;
+  };
+
+  const maxSteps   = Math.max(...sources.map(s => s.steps), 1);
+  const actSources = sources.filter(s => s.steps > 0 || s.calories > 0 || s.distance > 0)
+    .sort((a, b) => (b.isPreferredActivity ? 1 : 0) - (a.isPreferredActivity ? 1 : 0));
+  const slpSources = sources.filter(s => s.sleepHours > 0)
+    .sort((a, b) => (b.isPreferredSleep ? 1 : 0) - (a.isPreferredSleep ? 1 : 0));
+
+  // Activity section
+  const activityHtml = actSources.length === 0 ? '' : `
+    <div class="section-header"><div class="section-title">Activity</div></div>
+    ${actSources.map(s => `
+    <div class="card" style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:16px;font-weight:500;color:var(--text)">${s.appName}</div>
+        ${s.isPreferredActivity ? `<div style="font-size:10px;color:var(--good-line);background:var(--good);border-radius:10px;padding:2px 8px">Active source</div>` : ''}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div>
+          <div class="card-label">Steps</div>
+          <div style="font-size:24px;font-weight:300;color:var(--text);font-variant-numeric:tabular-nums">${fmt(s.steps)}</div>
+          <div style="height:3px;background:var(--border);border-radius:2px;margin-top:4px">
+            <div style="height:100%;width:${Math.round(s.steps/maxSteps*100)}%;background:var(--accent);border-radius:2px"></div>
+          </div>
+        </div>
+        <div>
+          <div class="card-label">Active Cal</div>
+          <div style="font-size:24px;font-weight:300;color:var(--text);font-variant-numeric:tabular-nums">${fmt(Math.round(s.calories))}</div>
+        </div>
+        ${s.appName !== 'Ultrahuman' ? `
+        <div>
+          <div class="card-label">Distance</div>
+          <div style="font-size:20px;font-weight:300;color:var(--text)">${s.distance.toFixed(2)} km</div>
+        </div>
+        <div>
+          <div class="card-label">Resting HR</div>
+          <div style="font-size:20px;font-weight:300;color:var(--text)">${s.hrResting > 0 ? s.hrResting + ' bpm' : '—'}</div>
+        </div>` : ''}
+      </div>
+      ${s.hrMax > 0 ? `<div style="margin-top:8px;font-size:11px;color:var(--dim)">Peak HR: ${s.hrMax} bpm</div>` : ''}
+    </div>`).join('')}`;
+
+  // Sleep section
+  const sleepHtml = slpSources.length === 0 ? '' : `
+    <div class="section-header" style="margin-top:8px"><div class="section-title">Sleep</div></div>
+    ${slpSources.map(s => `
+    <div class="card" style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:16px;font-weight:500;color:var(--text)">${s.appName}</div>
+        ${s.isPreferredSleep ? `<div style="font-size:10px;color:var(--good-line);background:var(--good);border-radius:10px;padding:2px 8px">Active source</div>` : ''}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div>
+          <div class="card-label">Duration</div>
+          <div style="font-size:24px;font-weight:300;color:var(--text)">${fmtSleep(s.sleepHours)}</div>
+        </div>
+        <div>
+          <div class="card-label">Deep</div>
+          <div style="font-size:24px;font-weight:300;color:var(--text)">${fmtSleep(s.sleepDeep)}</div>
+        </div>
+        <div>
+          <div class="card-label">REM</div>
+          <div style="font-size:20px;font-weight:300;color:var(--text)">${fmtSleep(s.sleepRem)}</div>
+        </div>
+        <div>
+          <div class="card-label">Light</div>
+          <div style="font-size:20px;font-weight:300;color:var(--text)">${fmtSleep(s.sleepLight)}</div>
+        </div>
+      </div>
+    </div>`).join('')}`;
+
+  return activityHtml + sleepHtml;
+}
+
+</script>
+</body>
+</html>
